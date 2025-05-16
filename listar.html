@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedbacks Recebidos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    select {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 14px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #ef4444;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #dc2626;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    li {
+      background-color: white;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <h1>Feedbacks Recebidos</h1>
+
+  <label for="filtroTurma">Filtrar por Turma:</label>
+  <select id="filtroTurma" onchange="carregarFeedbacks()">
+    <option value="">Todas</option>
+  </select>
+
+  <button onclick="limparFeedbacks()">🗑️ Limpar todos os feedbacks</button>
+
+  <ul id="lista-feedbacks"></ul>
+
+  <script>
+    async function carregarFeedbacks() {
+      const filtroSelect = document.getElementById('filtroTurma');
+      const turmaSelecionada = filtroSelect.value.trim().toLowerCase();
+      const lista = document.getElementById('lista-feedbacks');
+      lista.innerHTML = '';
+
+      try {
+        const res = await fetch('http://localhost:3000/feedbacks');
+        const data = await res.json();
+
+        // Preenche o <select> com turmas únicas apenas uma vez
+        if (filtroSelect.options.length <= 1) {
+          const turmasUnicas = [...new Set(data.map(fb => fb.turma).filter(Boolean))];
+          turmasUnicas.sort();
+          turmasUnicas.forEach(turma => {
+            const option = document.createElement('option');
+            option.value = turma;
+            option.textContent = turma;
+            filtroSelect.appendChild(option);
+          });
+        }
+
+        const filtrados = turmaSelecionada
+          ? data.filter(fb => fb.turma && fb.turma.toLowerCase() === turmaSelecionada)
+          : data;
+
+        if (filtrados.length === 0) {
+          lista.innerHTML = '<li>Nenhum feedback encontrado.</li>';
+          return;
+        }
+
+        filtrados.forEach(fb => {
+          const li = document.createElement('li');
+          li.textContent = `[${fb.turma}] ${fb.aluno}: "${fb.mensagem}" — Nota: ${fb.nota}`;
+          lista.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Erro ao buscar feedbacks:', error);
+      }
+    }
+
+    function limparFeedbacks() {
+      if (confirm("Tem certeza que deseja apagar todos os feedbacks?")) {
+        fetch('http://localhost:3000/feedback', {
+          method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(data => {
+          alert(data.mensagem);
+          location.reload();
+        })
+        .catch(err => console.error('Erro ao apagar feedbacks:', err));
+      }
+    }
+
+    // Carrega os feedbacks ao abrir a página
+    carregarFeedbacks();
+  </script>
+</body>
+</html>
